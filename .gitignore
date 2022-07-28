@@ -1,3 +1,10 @@
+# User specific files
+config.py
+data/
+nations/
+players/
+teams/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
