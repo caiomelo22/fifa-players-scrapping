@@ -1,5 +1,5 @@
 # Fifa-Players-Scrapping
-Project developed to scrap the fifa players from a website and save them into json files.
+Project developed to scrap fifa players from a website and save them into json files.
 
 ## Setup
 ```bash
