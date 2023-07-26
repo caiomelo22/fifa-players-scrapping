@@ -1,9 +1,14 @@
 import time
+import pandas as pd
 from helpers import ImageHelper
+from requests.exceptions import ConnectionError
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
+from services import MySQLService
 import undetected_chromedriver as uc
-import json
-import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 positions_dict = {
     "Goalkeepers": "GK",
@@ -21,19 +26,21 @@ base_url = (
 
 image_helper = ImageHelper()
 
-positions = []
-teams = []
-leagues = []
-nations = []
-players = []
+objects = {
+    "positions": [],
+    "teams": [],
+    "leagues": [],
+    "nations": [],
+    "players": [],
+}
 
 options = uc.ChromeOptions()
-options.headless = False
+options.headless = True
 driver = uc.Chrome(use_subprocess=True, options=options)
 driver.maximize_window()
 
 for index, name in enumerate(positions_dict):
-    positions.append(
+    objects["positions"].append(
         {"id": index + 1, "name": name, "specific_positions": positions_dict[name]}
     )
 
@@ -41,38 +48,39 @@ for index, name in enumerate(positions_dict):
         url = base_url + positions_dict[name]
 
         url = f"{url}&page={page}"
-        print(url)
+        print(f"\n{url}")
 
         driver.get(url)
 
         driver.maximize_window()
-        time.sleep(5)
+        time.sleep(8)
 
         players_1 = driver.find_elements(By.CLASS_NAME, "player_tr_1")
         players_2 = driver.find_elements(By.CLASS_NAME, "player_tr_2")
         players_trs = players_1 + players_2
 
         for p in players_trs:
-            player = {"position": positions[-1]["id"]}
+            player = {"position": objects["positions"][-1]["id"]}
 
             tds = p.find_elements(By.TAG_NAME, "td")
 
-            player["id"] = (
-                tds[0].find_element(By.TAG_NAME, "div").get_attribute("data-playerid")
-            )
             try:
-                other_player = next(
-                    filter(
-                        lambda x: x.name == player["name"]
-                        and int(x.id) > int(player["id"]),
-                        players,
-                    )
+                player["id"] = (
+                    tds[0].find_element(By.TAG_NAME, "div").get_attribute("data-playerid")
                 )
+            except NoSuchElementException:
                 continue
-            except StopIteration:
-                pass
 
             player["name"] = tds[1].find_element(By.XPATH, "div[2]/div[1]/a").text
+            similar_players = [p for p in objects["players"] if p['name'] == player['name']]
+            if not similar_players:
+                pass
+            elif similar_players and similar_players[0]["id"] < player["id"]:
+                objects["players"].remove(similar_players[0])
+            else:
+                continue
+
+            print(f"{player['name']} loaded")
 
             players_club_nation = (
                 tds[1]
@@ -102,51 +110,51 @@ for index, name in enumerate(positions_dict):
             player["defending"] = tds[13].find_element(By.TAG_NAME, "span").text
             player["physical"] = tds[14].find_element(By.TAG_NAME, "span").text
 
-            nation = image_helper.extract_save_img(
-                players_club_nation[1], player["nation"], nations, "images/nations"
-            )
-            league = image_helper.extract_save_img(
-                players_club_nation[2],
-                player["league"],
-                leagues,
-                "images/leagues",
-                {"nation": nation["id"]},
-            )
-            team = image_helper.extract_save_img(
-                players_club_nation[0],
-                player["team_origin"],
-                teams,
-                "images/teams",
-                {"league": league["id"]},
-            )
-            player["team_origin"], player["nation"] = team["id"], nation["id"]
+            try:
+                nation = image_helper.extract_save_img(
+                    players_club_nation[1],
+                    player["nation"],
+                    objects["nations"],
+                    "images/nations",
+                )
+                league = image_helper.extract_save_img(
+                    players_club_nation[2],
+                    player["league"],
+                    objects["leagues"],
+                    "images/leagues",
+                    {"nation": nation["id"]},
+                )
+                team = image_helper.extract_save_img(
+                    players_club_nation[0],
+                    player["team_origin"],
+                    objects["teams"],
+                    "images/teams",
+                    {"league": league["id"]},
+                )
+                player["team_origin"], player["nation"] = team["id"], nation["id"]
 
-            player_img = image_helper.get_img_url(
-                tds[1].find_element(By.XPATH, "div[1]")
-            )
-            file_path = image_helper.save_image(
-                player_img,
-                "images/players",
-                f"{player['name'].replace(' ', '')}_{player['id']}.png",
-            )
+                player_img = image_helper.get_img_url(
+                    tds[1].find_element(By.XPATH, "div[1]")
+                )
+                file_path = image_helper.save_image(
+                    player_img,
+                    "images/players",
+                    f"{player['name'].replace(' ', '')}_{player['id']}.png",
+                )
+            except ConnectionError:
+                continue
+
             player["image_path"] = file_path
 
-            players.append(player)
+            objects["players"].append(player)
 
 driver.quit()
 
+mysql_service = MySQLService()
 
-def save_list_to_json(asset_list, file_path):
-    with open(file_path, "w") as f:
-        json.dump(asset_list, f)
+for obj in objects:
+    data_df = pd.DataFrame(objects[obj])
+    mysql_service.create_table_from_df(obj, data_df)
+    mysql_service.insert_multiple_rows_from_dataframe(obj, data_df)
 
-
-directory = "dist"
-
-if not os.path.exists(directory):
-    os.makedirs(directory)
-
-save_list_to_json(positions, f"{directory}/positions.json")
-save_list_to_json(players, f"{directory}/players.json")
-save_list_to_json(nations, f"{directory}/nations.json")
-save_list_to_json(teams, f"{directory}/teams.json")
+mysql_service.close()

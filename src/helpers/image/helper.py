@@ -10,7 +10,7 @@ class ImageHelper:
         if self.dir_path is None:
             raise Exception("Environment variable IMAGE_DIR_PATH is not set.")
 
-    def save_image_to_env_folder(self, img, directory, file_name):
+    def save_image(self, img, directory, file_name):
         # Create the 'dist' folder within the specified path if it doesn't exist
         dist_folder = os.path.join(self.dir_path, directory)
         os.makedirs(dist_folder, exist_ok=True)
