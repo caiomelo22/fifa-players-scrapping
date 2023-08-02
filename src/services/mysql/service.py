@@ -52,7 +52,15 @@ class MySQLService:
             # Iterate over DataFrame columns to determine data types for table creation
             for col, dtype in df.dtypes.items():
                 col_type = type_mapping.get(str(dtype), "VARCHAR(255)")
-                columns.append(f"{col} {col_type}")
+
+                # Check if the column name ends with "_id"
+                if col.endswith("_id"):
+                    # Extract the referenced table name from the column name
+                    referenced_table = col.split("_")[0]
+                    # Append the foreign key definition
+                    columns.append(f"{col} {col_type} REFERENCES `{referenced_table}`(id)")
+                else:
+                    columns.append(f"{col} {col_type}")
 
             # Find the position of "id" column and set it as the primary key
             id_index = df.columns.get_loc("id") if "id" in df.columns else None
