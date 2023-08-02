@@ -27,11 +27,11 @@ base_url = (
 image_helper = ImageHelper()
 
 objects = {
-    "positions": [],
-    "teams": [],
-    "leagues": [],
-    "nations": [],
-    "players": [],
+    "position": [],
+    "nation": [],
+    "league": [],
+    "team": [],
+    "player": [],
 }
 
 options = uc.ChromeOptions()
@@ -40,7 +40,7 @@ driver = uc.Chrome(use_subprocess=True, options=options)
 driver.maximize_window()
 
 for index, name in enumerate(positions_dict):
-    objects["positions"].append(
+    objects["position"].append(
         {"id": index + 1, "name": name, "specific_positions": positions_dict[name]}
     )
 
@@ -60,7 +60,7 @@ for index, name in enumerate(positions_dict):
         players_trs = players_1 + players_2
 
         for p in players_trs:
-            player = {"position": objects["positions"][-1]["id"]}
+            player = {"position_id": objects["position"][-1]["id"]}
 
             tds = p.find_elements(By.TAG_NAME, "td")
 
@@ -72,11 +72,11 @@ for index, name in enumerate(positions_dict):
                 continue
 
             player["name"] = tds[1].find_element(By.XPATH, "div[2]/div[1]/a").text
-            similar_players = [p for p in objects["players"] if p['name'] == player['name']]
+            similar_players = [p for p in objects["player"] if p['name'] == player['name']]
             if not similar_players:
                 pass
             elif similar_players and similar_players[0]["id"] < player["id"]:
-                objects["players"].remove(similar_players[0])
+                objects["player"].remove(similar_players[0])
             else:
                 continue
 
@@ -87,13 +87,13 @@ for index, name in enumerate(positions_dict):
                 .find_element(By.XPATH, "div[2]/div[2]/span")
                 .find_elements(By.TAG_NAME, "a")
             )
-            player["team_origin"] = players_club_nation[0].get_attribute(
+            player["team_origin_id"] = players_club_nation[0].get_attribute(
                 "data-original-title"
             )
-            player["nation"] = players_club_nation[1].get_attribute(
+            player["nation_id"] = players_club_nation[1].get_attribute(
                 "data-original-title"
             )
-            player["league"] = players_club_nation[2].get_attribute(
+            player["league_id"] = players_club_nation[2].get_attribute(
                 "data-original-title"
             )
             player["specific_position"] = ",".join(
@@ -103,35 +103,37 @@ for index, name in enumerate(positions_dict):
             player["weak_foot"] = tds[7].text
             player["work_rate"] = tds[8].text
 
-            player["pace"] = tds[9].find_element(By.TAG_NAME, "span").text
-            player["shooting"] = tds[10].find_element(By.TAG_NAME, "span").text
-            player["passing"] = tds[11].find_element(By.TAG_NAME, "span").text
-            player["dribbling"] = tds[12].find_element(By.TAG_NAME, "span").text
-            player["defending"] = tds[13].find_element(By.TAG_NAME, "span").text
-            player["physical"] = tds[14].find_element(By.TAG_NAME, "span").text
+            player["pace"] = int(tds[9].find_element(By.TAG_NAME, "span").text)
+            player["shooting"] = int(tds[10].find_element(By.TAG_NAME, "span").text)
+            player["passing"] = int(tds[11].find_element(By.TAG_NAME, "span").text)
+            player["dribbling"] = int(tds[12].find_element(By.TAG_NAME, "span").text)
+            player["defending"] = int(tds[13].find_element(By.TAG_NAME, "span").text)
+            player["physical"] = int(tds[14].find_element(By.TAG_NAME, "span").text)
 
             try:
                 nation = image_helper.extract_save_img(
                     players_club_nation[1],
-                    player["nation"],
-                    objects["nations"],
+                    player["nation_id"],
+                    objects["nation"],
                     "images/nations",
                 )
                 league = image_helper.extract_save_img(
                     players_club_nation[2],
-                    player["league"],
-                    objects["leagues"],
+                    player["league_id"],
+                    objects["league"],
                     "images/leagues",
-                    {"nation": nation["id"]},
+                    {"nation_id": nation["id"]},
                 )
                 team = image_helper.extract_save_img(
                     players_club_nation[0],
-                    player["team_origin"],
-                    objects["teams"],
+                    player["team_origin_id"],
+                    objects["team"],
                     "images/teams",
-                    {"league": league["id"]},
+                    {"league_id": league["id"]},
                 )
-                player["team_origin"], player["nation"] = team["id"], nation["id"]
+                player["team_origin_id"] = team["id"]
+                player["league_id"] = league["id"]
+                player["nation_id"] = nation["id"]
 
                 player_img = image_helper.get_img_url(
                     tds[1].find_element(By.XPATH, "div[1]")
@@ -146,7 +148,7 @@ for index, name in enumerate(positions_dict):
 
             player["image_path"] = file_path
 
-            objects["players"].append(player)
+            objects["player"].append(player)
 
 driver.quit()
 
