@@ -82,6 +82,8 @@ for index, name in enumerate(positions_dict):
 
             print(f"{player['name']} loaded")
 
+            player["overall"] = int(tds[2].text)
+
             players_club_nation = (
                 tds[1]
                 .find_element(By.XPATH, "div[2]/div[2]/span")
