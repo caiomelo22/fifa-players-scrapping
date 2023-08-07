@@ -148,6 +148,8 @@ for index, name in enumerate(positions_dict):
 
             player["image_path"] = file_path
 
+            del player["league_id"]
+
             objects["player"].append(player)
 
 driver.quit()
