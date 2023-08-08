@@ -13,7 +13,7 @@ load_dotenv()
 positions_dict = {
     "Goalkeepers": "GK",
     "Center Backs": "CB",
-    "Full Backs": "RB,LB, RWB, LWB",
+    "Full Backs": "RB,LB,RWB,LWB",
     "Defensive Midfielders": "CDM,CM",
     "Ofensive Midfielders": "CAM",
     "Wingers": "LW,LF,LM,RF,RW,RM",
