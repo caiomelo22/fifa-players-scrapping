@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from services import MySQLService
 import undetected_chromedriver as uc
 from dotenv import load_dotenv
+from unidecode import unidecode
 
 load_dotenv()
 
@@ -86,7 +87,7 @@ for index, name in enumerate(positions_dict):
 
             player_info_td = tds[1]
 
-            player["name"] = (
+            player["name"] = unidecode(
                 tds[1].find_element(By.XPATH, "div/div[3]/div/div[1]/a").text
             )
 
@@ -110,12 +111,12 @@ for index, name in enumerate(positions_dict):
             player_nation = player_info_td.find_element(
                 By.XPATH, "div/div[2]/div[2]/a/img"
             )
-            player["nation_id"] = player_nation.get_attribute("data-original-title")
+            player["nation_id"] = unidecode(player_nation.get_attribute("data-original-title"))
 
             player_team = player_info_td.find_element(
                 By.XPATH, "div/div[2]/div[1]/a/img"
             )
-            player["team_origin_id"] = player_team.get_attribute("data-original-title")
+            player["team_origin_id"] = unidecode(player_team.get_attribute("data-original-title"))
 
             player["specific_position"] = (
                 player_info_td.find_element(By.CLASS_NAME, "player-position-cln")
