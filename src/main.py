@@ -10,42 +10,49 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def close_footer(driver):
+    try:
+        close_button = driver.find_element(By.CLASS_NAME, "vm-footer-close")
+        close_button.click()
+    except:
+        pass
+
+
 positions_dict = {
-    "Goalkeepers": "GK",
-    "Center Backs": "CB",
-    "Full Backs": "RB,LB,RWB,LWB",
-    "Defensive Midfielders": "CDM,CM",
-    "Ofensive Midfielders": "CAM",
-    "Wingers": "LW,LF,LM,RF,RW,RM",
-    "Attackers": "ST,CF",
+    "Goalkeepers": {"id": "GK", "n_pages": 1},
+    "Center Backs": {"id": "CB", "n_pages": 2},
+    "Full Backs": {"id": "RB,LB,RWB,LWB", "n_pages": 2},
+    "Defensive Midfielders": {"id": "CDM,CM", "n_pages": 2},
+    "Ofensive Midfielders": {"id": "CAM", "n_pages": 1},
+    "Wingers": {"id": "LW,LF,LM,RF,RW,RM", "n_pages": 2},
+    "Attackers": {"id": "ST,CF", "n_pages": 2},
 }
 
-base_url = (
-    "https://www.futbin.com/players?page=1&version=gold_rare&pos_type=all&position="
-)
+stats = ["pace", "shooting", "passing", "dribbling", "defending", "physical"]
+
+base_url = "https://www.fifacm.com/players?sort=overallrating&order=desc&position="
 
 image_helper = ImageHelper()
 
 objects = {
     "position": [],
     "nation": [],
-    "league": [],
     "team": [],
     "player": [],
 }
 
 options = uc.ChromeOptions()
-options.headless = True
-driver = uc.Chrome(use_subprocess=True, options=options)
-driver.maximize_window()
+# options.headless = True
+driver = uc.Chrome(options=options)
 
 for index, name in enumerate(positions_dict):
     objects["position"].append(
-        {"id": index + 1, "name": name, "specific_positions": positions_dict[name]}
+        {"id": index + 1, "name": name, "specific_positions": positions_dict[name]["id"]}
     )
 
-    for page in range(1, 4):
-        url = base_url + positions_dict[name]
+    for page in range(1, positions_dict[name]["n_pages"]+1):
+        url = base_url + positions_dict[name]["id"]
 
         url = f"{url}&page={page}"
         print(f"\n{url}")
@@ -55,24 +62,38 @@ for index, name in enumerate(positions_dict):
         driver.maximize_window()
         time.sleep(8)
 
-        players_1 = driver.find_elements(By.CLASS_NAME, "player_tr_1")
-        players_2 = driver.find_elements(By.CLASS_NAME, "player_tr_2")
-        players_trs = players_1 + players_2
+        players_trs = driver.find_elements(By.CLASS_NAME, "player-row")
 
         for p in players_trs:
+            close_footer(driver)
+
             player = {"position_id": objects["position"][-1]["id"]}
 
             tds = p.find_elements(By.TAG_NAME, "td")
+            main_td = tds[0]
+
+            scroll_script = "window.scrollBy(0, 205);"
+            driver.execute_script(scroll_script)
+
+            stats_button = main_td.find_element(By.CLASS_NAME, "igs-btn")
+
+            stats_button.click()
 
             try:
-                player["id"] = (
-                    tds[0].find_element(By.TAG_NAME, "div").get_attribute("data-playerid")
-                )
+                player["id"] = stats_button.get_attribute("data-playerid")
             except NoSuchElementException:
                 continue
 
-            player["name"] = tds[1].find_element(By.XPATH, "div[2]/div[1]/a").text
-            similar_players = [p for p in objects["player"] if p['name'] == player['name']]
+            player_info_td = tds[1]
+
+            player["name"] = (
+                tds[1].find_element(By.XPATH, "div/div[3]/div/div[1]/a").text
+            )
+
+            similar_players = [
+                p for p in objects["player"] if p["name"] == player["name"]
+            ]
+
             if not similar_players:
                 pass
             elif similar_players and similar_players[0]["id"] < player["id"]:
@@ -82,75 +103,74 @@ for index, name in enumerate(positions_dict):
 
             print(f"{player['name']} loaded")
 
-            player["overall"] = int(tds[2].text)
+            overall_td = tds[2]
 
-            players_club_nation = (
-                tds[1]
-                .find_element(By.XPATH, "div[2]/div[2]/span")
-                .find_elements(By.TAG_NAME, "a")
-            )
-            player["team_origin_id"] = players_club_nation[0].get_attribute(
-                "data-original-title"
-            )
-            player["nation_id"] = players_club_nation[1].get_attribute(
-                "data-original-title"
-            )
-            player["league_id"] = players_club_nation[2].get_attribute(
-                "data-original-title"
-            )
-            player["specific_position"] = ",".join(
-                [div.text for div in tds[3].find_elements(By.TAG_NAME, "div")]
-            )
-            player["skills"] = tds[6].text
-            player["weak_foot"] = tds[7].text
-            player["work_rate"] = tds[8].text
+            player["overall"] = int(overall_td.text)
 
-            player["pace"] = int(tds[9].find_element(By.TAG_NAME, "span").text)
-            player["shooting"] = int(tds[10].find_element(By.TAG_NAME, "span").text)
-            player["passing"] = int(tds[11].find_element(By.TAG_NAME, "span").text)
-            player["dribbling"] = int(tds[12].find_element(By.TAG_NAME, "span").text)
-            player["defending"] = int(tds[13].find_element(By.TAG_NAME, "span").text)
-            player["physical"] = int(tds[14].find_element(By.TAG_NAME, "span").text)
+            player_nation = player_info_td.find_element(
+                By.XPATH, "div/div[2]/div[2]/a/img"
+            )
+            player["nation_id"] = player_nation.get_attribute("data-original-title")
+
+            player_team = player_info_td.find_element(
+                By.XPATH, "div/div[2]/div[1]/a/img"
+            )
+            player["team_origin_id"] = player_team.get_attribute("data-original-title")
+
+            player["specific_position"] = (
+                player_info_td.find_element(By.CLASS_NAME, "player-position-cln")
+                .text.split("|")[0]
+                .strip()
+            )
 
             try:
                 nation = image_helper.extract_save_img(
-                    players_club_nation[1],
+                    player_nation,
                     player["nation_id"],
                     objects["nation"],
-                    "images/nations",
+                    "nations",
                 )
-                league = image_helper.extract_save_img(
-                    players_club_nation[2],
-                    player["league_id"],
-                    objects["league"],
-                    "images/leagues",
-                    {"nation_id": nation["id"]},
-                )
+
                 team = image_helper.extract_save_img(
-                    players_club_nation[0],
+                    player_team,
                     player["team_origin_id"],
                     objects["team"],
-                    "images/teams",
-                    {"league_id": league["id"]},
+                    "teams",
                 )
+
                 player["team_origin_id"] = team["id"]
-                player["league_id"] = league["id"]
+
                 player["nation_id"] = nation["id"]
 
                 player_img = image_helper.get_img_url(
-                    tds[1].find_element(By.XPATH, "div[1]")
+                    player_info_td.find_element(By.XPATH, "div/div[1]/img")
                 )
                 file_path = image_helper.save_image(
                     player_img,
-                    "images/players",
+                    "players",
                     f"{player['name'].replace(' ', '')}_{player['id']}.png",
                 )
             except ConnectionError:
                 continue
 
-            player["image_path"] = file_path
+            time.sleep(1)
 
-            del player["league_id"]
+            try:
+                player_stats_tr = driver.find_element(By.ID, f"player-{player['id']}")
+
+                parent_div = player_stats_tr.find_element(By.CLASS_NAME, "player-stats")
+
+                main_stats_values = parent_div.find_elements(
+                    By.CLASS_NAME, "main-stat-rating-title"
+                )
+
+                for i in range(len(stats)):
+                    player[stats[i]] = int(main_stats_values[i].text)
+            except:
+                print(f"Player {player['name']} could not be loaded.")
+                continue
+
+            player["image_path"] = file_path
 
             objects["player"].append(player)
 

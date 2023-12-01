@@ -24,10 +24,10 @@ class ImageHelper:
         with open(file_path, "wb") as f:
             f.write(image_file.getbuffer())
         
-        return file_path
+        return os.path.join(directory, file_name)
 
     def get_img_url(self, element):
-        return element.find_element(By.TAG_NAME, "img").get_attribute("src")
+        return element.get_attribute("src")
 
     def extract_save_img(
         self, element, element_name, obj_list, dir_name, dict_complement={}
