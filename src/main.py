@@ -49,10 +49,14 @@ driver = uc.Chrome(options=options)
 
 for index, name in enumerate(positions_dict):
     objects["position"].append(
-        {"id": index + 1, "name": name, "specific_positions": positions_dict[name]["id"]}
+        {
+            "id": index + 1,
+            "name": name,
+            "specific_positions": positions_dict[name]["id"],
+        }
     )
 
-    for page in range(1, positions_dict[name]["n_pages"]+1):
+    for page in range(1, positions_dict[name]["n_pages"] + 1):
         url = base_url + positions_dict[name]["id"]
 
         url = f"{url}&page={page}"
@@ -111,12 +115,16 @@ for index, name in enumerate(positions_dict):
             player_nation = player_info_td.find_element(
                 By.XPATH, "div/div[2]/div[2]/a/img"
             )
-            player["nation_id"] = unidecode(player_nation.get_attribute("data-original-title"))
+            player["nation_id"] = unidecode(
+                player_nation.get_attribute("data-original-title")
+            )
 
             player_team = player_info_td.find_element(
                 By.XPATH, "div/div[2]/div[1]/a/img"
             )
-            player["team_origin_id"] = unidecode(player_team.get_attribute("data-original-title"))
+            player["team_origin_id"] = unidecode(
+                player_team.get_attribute("data-original-title")
+            )
 
             player["specific_position"] = (
                 player_info_td.find_element(By.CLASS_NAME, "player-position-cln")
