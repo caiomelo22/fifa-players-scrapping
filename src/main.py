@@ -64,6 +64,19 @@ for index, name in enumerate(positions_dict):
 
         driver.get(url)
 
+        # Add/set the gender cookie
+        gender_cookie = driver.get_cookie('gender')
+        if not gender_cookie:
+            driver.add_cookie({
+                'name': 'gender',
+                'value': '0',
+                'domain': '.fifacm.com',  # Note the dot prefix for subdomain inclusion
+                'path': '/',
+                'secure': True,  # Set to True for HTTPS sites
+                'httpOnly': False  # Depends on your needs
+            })
+            driver.refresh()
+
         driver.maximize_window()
         time.sleep(8)
 
