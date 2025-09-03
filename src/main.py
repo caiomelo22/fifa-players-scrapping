@@ -45,7 +45,26 @@ objects = {
 
 options = uc.ChromeOptions()
 # options.headless = True
-driver = uc.Chrome(options=options)
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+
+# Multiple approaches to handle version mismatch
+try:
+    # Method 1: Force version 139
+    driver = uc.Chrome(options=options, version_main=139)
+except Exception as e:
+    print(f"Method 1 failed: {e}")
+    try:
+        # Method 2: Let undetected_chromedriver auto-download the correct version
+        driver = uc.Chrome(options=options, driver_executable_path=None)
+    except Exception as e:
+        print(f"Method 2 failed: {e}")
+        try:
+            # Method 3: Use patcher to force update
+            driver = uc.Chrome(options=options, patcher_force_close=True)
+        except Exception as e:
+            print(f"All methods failed: {e}")
+            raise
 
 for index, name in enumerate(positions_dict):
     objects["position"].append(
