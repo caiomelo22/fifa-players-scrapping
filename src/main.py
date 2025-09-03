@@ -22,11 +22,11 @@ def close_footer(driver):
 
 positions_dict = {
     "Goalkeepers": {"id": "GK", "n_pages": 1},
-    "Center Backs": {"id": "CB", "n_pages": 2},
-    "Full Backs": {"id": "RB,LB,RWB,LWB", "n_pages": 2},
-    "Defensive Midfielders": {"id": "CDM,CM", "n_pages": 2},
+    "Center Backs": {"id": "CB", "n_pages": 3},
+    "Full Backs": {"id": "RB,LB,RWB,LWB", "n_pages": 3},
+    "Defensive Midfielders": {"id": "CDM,CM", "n_pages": 4},
     "Ofensive Midfielders": {"id": "CAM", "n_pages": 1},
-    "Wingers": {"id": "LW,LF,LM,RF,RW,RM", "n_pages": 2},
+    "Wingers": {"id": "LW,LF,LM,RF,RW,RM", "n_pages": 5},
     "Attackers": {"id": "ST,CF", "n_pages": 2},
 }
 
