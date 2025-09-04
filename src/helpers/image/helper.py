@@ -30,26 +30,23 @@ class ImageHelper:
         return element.get_attribute("src")
 
     def extract_save_img(
-        self, element, element_name, obj_list, dir_name, dict_complement={}
+        self, element_src, element_name, position_element, dir_name, dict_complement={}
     ):
-        img = self.get_img_url(element)
         try:
-            obj = next(filter(lambda x: x["name"] == element_name, obj_list))
+            obj = next(filter(lambda x: x["name"] == element_name, position_element[0]))
         except StopIteration:
             file_path = self.save_image(
-                img, dir_name, f"{element_name.replace(' ', '')}.png"
+                element_src, dir_name, f"{element_name.replace(' ', '')}.png"
             )
-            img = file_path
 
-            obj_list.append(
+            position_element[0].append(
                 {
-                    "id": len(obj_list) + 1,
                     "name": element_name,
-                    "image_path": img,
+                    "image_path": file_path,
                     **dict_complement,
                 }
             )
 
-            obj = obj_list[-1]
+            obj = position_element[0][-1]
 
         return obj

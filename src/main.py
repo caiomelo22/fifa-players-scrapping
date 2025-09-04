@@ -4,6 +4,7 @@ from helpers import ImageHelper
 from requests.exceptions import ConnectionError
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
+from helpers.utils import get_asset_info
 from services import MySQLService
 import undetected_chromedriver as uc
 from dotenv import load_dotenv
@@ -37,10 +38,10 @@ base_url = "https://www.fifacm.com/players?sort=overallrating&order=desc&positio
 image_helper = ImageHelper()
 
 objects = {
-    "position": [],
-    "nation": [],
-    "team": [],
-    "player": [],
+    "position": ([], "id"),
+    "nation": ([], "name"),
+    "team": ([], "name"),
+    "player": ([], "id"),
 }
 
 options = uc.ChromeOptions()
@@ -67,7 +68,7 @@ except Exception as e:
             raise
 
 for index, name in enumerate(positions_dict):
-    objects["position"].append(
+    objects["position"][0].append(
         {
             "id": index + 1,
             "name": name,
@@ -104,7 +105,7 @@ for index, name in enumerate(positions_dict):
         for p in players_trs:
             close_footer(driver)
 
-            player = {"position_id": objects["position"][-1]["id"]}
+            player = {"position_id": objects["position"][0][-1]["id"]}
 
             tds = p.find_elements(By.TAG_NAME, "td")
             main_td = tds[0]
@@ -128,35 +129,29 @@ for index, name in enumerate(positions_dict):
             )
 
             similar_players = [
-                p for p in objects["player"] if p["name"] == player["name"]
+                p for p in objects["player"][0] if p["name"] == player["name"]
             ]
 
             if not similar_players:
                 pass
             elif similar_players and similar_players[0]["id"] < player["id"]:
-                objects["player"].remove(similar_players[0])
+                objects["player"][0].remove(similar_players[0])
             else:
                 continue
-
-            print(f"{player['name']} loaded")
 
             overall_td = tds[2]
 
             player["overall"] = int(overall_td.text)
 
-            player_nation = player_info_td.find_element(
+            player_nation_img = player_info_td.find_element(
                 By.XPATH, "div/div[2]/div[2]/a/img"
             )
-            player["nation_id"] = unidecode(
-                player_nation.get_attribute("data-original-title")
-            )
+            player_nation_str, player_nation_img_src = get_asset_info(player_nation_img)
 
-            player_team = player_info_td.find_element(
+            player_team_img = player_info_td.find_element(
                 By.XPATH, "div/div[2]/div[1]/a/img"
             )
-            player["team_origin_id"] = unidecode(
-                player_team.get_attribute("data-original-title")
-            )
+            player_team_str, player_team_img_src = get_asset_info(player_team_img, prefix="l")
 
             player["specific_position"] = (
                 player_info_td.find_element(By.CLASS_NAME, "player-position-cln")
@@ -166,22 +161,22 @@ for index, name in enumerate(positions_dict):
 
             try:
                 nation = image_helper.extract_save_img(
-                    player_nation,
-                    player["nation_id"],
+                    player_nation_img_src,
+                    player_nation_str,
                     objects["nation"],
                     "nations",
                 )
 
                 team = image_helper.extract_save_img(
-                    player_team,
-                    player["team_origin_id"],
+                    player_team_img_src,
+                    player_team_str,
                     objects["team"],
                     "teams",
                 )
 
-                player["team_origin_id"] = team["id"]
+                player["team_origin"] = team["name"]
 
-                player["nation_id"] = nation["id"]
+                player["nation"] = nation["name"]
 
                 player_img = image_helper.get_img_url(
                     player_info_td.find_element(By.XPATH, "div/div[1]/img")
@@ -213,15 +208,18 @@ for index, name in enumerate(positions_dict):
 
             player["image_path"] = file_path
 
-            objects["player"].append(player)
+            print(f"{player['name']} loaded")
+
+            objects["player"][0].append(player)
 
 driver.quit()
 
 mysql_service = MySQLService()
 
 for obj in objects:
-    data_df = pd.DataFrame(objects[obj])
-    mysql_service.create_table_from_df(obj, data_df)
+    data_list, pk_column = objects[obj]
+    data_df = pd.DataFrame(data_list)
+    mysql_service.create_table_from_df(obj, data_df, pk_column=pk_column)
     mysql_service.insert_multiple_rows_from_dataframe(obj, data_df)
 
 mysql_service.close()

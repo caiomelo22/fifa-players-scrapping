@@ -37,7 +37,7 @@ class MySQLService:
             print(f"Error creating table: {e}")
             self.conn.rollback()
 
-    def create_table_from_df(self, table_name, df):
+    def create_table_from_df(self, table_name, df, pk_column="id"):
         try:
             columns = []
 
@@ -63,7 +63,7 @@ class MySQLService:
                     columns.append(f"{col} {col_type}")
 
             # Find the position of "id" column and set it as the primary key
-            id_index = df.columns.get_loc("id") if "id" in df.columns else None
+            id_index = df.columns.get_loc(pk_column) if pk_column in df.columns else None
             if id_index is not None:
                 columns[id_index] = f"{columns[id_index]} PRIMARY KEY"
 
@@ -102,7 +102,7 @@ class MySQLService:
             values = [tuple(row.values()) for row in data_list]
             
             # Generate the query
-            query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+            query = f"INSERT IGNORE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
             
             # Execute the query and commit the changes
             self.cursor.executemany(query, values)
