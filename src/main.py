@@ -28,7 +28,7 @@ positions_dict = {
     "Defensive Midfielders": {"id": "CDM,CM", "n_pages": 4},
     "Ofensive Midfielders": {"id": "CAM", "n_pages": 1},
     "Wingers": {"id": "LW,LF,LM,RF,RW,RM", "n_pages": 5},
-    "Attackers": {"id": "ST,CF", "n_pages": 2},
+    "Attackers": {"id": "ST,CF", "n_pages": 4},
 }
 
 stats = ["pace", "shooting", "passing", "dribbling", "defending", "physical"]
