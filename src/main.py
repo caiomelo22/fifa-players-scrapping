@@ -94,8 +94,6 @@ for index, name in enumerate(positions_dict):
 
             stats_button = main_td.find_element(By.CLASS_NAME, "igs-btn")
 
-            stats_button.click()
-
             try:
                 player["id"] = stats_button.get_attribute("data-playerid")
             except NoSuchElementException:
@@ -168,6 +166,7 @@ for index, name in enumerate(positions_dict):
             except ConnectionError:
                 continue
 
+            stats_button.click()
             time.sleep(1)
 
             try:
@@ -184,6 +183,10 @@ for index, name in enumerate(positions_dict):
             except:
                 print(f"Player {player['name']} could not be loaded.")
                 continue
+            finally:
+                stats_button.click()
+
+            time.sleep(0.5)
 
             player["image_path"] = file_path
 
